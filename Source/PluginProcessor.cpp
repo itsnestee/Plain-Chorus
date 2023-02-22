@@ -19,7 +19,7 @@ PlainChorusAudioProcessor::PlainChorusAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), treestate(*this, nullptr, "PARAMS", createParameterLayout())
 #endif
 {
 }
@@ -27,6 +27,24 @@ PlainChorusAudioProcessor::PlainChorusAudioProcessor()
 PlainChorusAudioProcessor::~PlainChorusAudioProcessor()
 {
 }
+
+//Vector of parameters
+juce::AudioProcessorValueTreeState::ParameterLayout PlainChorusAudioProcessor::createParameterLayout()
+{
+    std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
+    
+    auto cGain = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { "gain", 1 }, "Gain", juce::NormalisableRange<float> (0.0f, 1.0f),0.5f);
+    
+    params.push_back(std::move(cGain));
+    
+    return {params.begin(), params.end()};
+    
+}
+
+
+
+
+
 
 //==============================================================================
 const juce::String PlainChorusAudioProcessor::getName() const
@@ -150,6 +168,9 @@ void PlainChorusAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
+    float dbGain = *treestate.getRawParameterValue("gain");
+    float rawGain = juce::Decibels::decibelsToGain(dbGain);
+    
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* inputBuffer = buffer.getReadPointer(channel);
@@ -172,7 +193,8 @@ bool PlainChorusAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* PlainChorusAudioProcessor::createEditor()
 {
-    return new PlainChorusAudioProcessorEditor (*this);
+    //return new PlainChorusAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
