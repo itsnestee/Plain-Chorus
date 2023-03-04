@@ -20,6 +20,7 @@ PlainChorusAudioProcessor::PlainChorusAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), treestate(*this, nullptr, "PARAMS", createParameterLayout())
+                            
 #endif
 {
 }
@@ -33,11 +34,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout PlainChorusAudioProcessor::c
 {
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
     
-    auto cGain = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { "gain", 1 }, "Gain", juce::NormalisableRange<float> (0.0f, 1.0f),0.5f);
+    auto cRate =  std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"RATE", 1}, "Rate", 0, 100 ,30);
+    auto cDepth = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"DEPTH", 1}, "Depth", juce::NormalisableRange<float>(0.0f, 1.0f ), 0.3f);
+    auto cDelay = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"DELAY", 1}, "Delay", 0, 100, 25);
+    auto cFeedback = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"FEEDBACK", 1}, "Feedback", juce::NormalisableRange<float>(-1.0f, 1.0f), 0.0f);
+    auto cMix = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"MIX", 1}, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f), 0.3f);
     
-    params.push_back(std::move(cGain));
     
-    return {params.begin(), params.end()};
+    params.push_back(std::move(cRate));
+    params.push_back(std::move(cDepth));
+    params.push_back(std::move(cDelay));
+    params.push_back(std::move(cFeedback));
+    params.push_back(std::move(cMix));
+    
+    
+    return{params.begin(), params.end()};
+    
     
 }
 
@@ -153,23 +165,9 @@ void PlainChorusAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    float dbGain = *treestate.getRawParameterValue("gain");
-    float rawGain = juce::Decibels::decibelsToGain(dbGain);
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
@@ -178,7 +176,7 @@ void PlainChorusAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
         
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            outputBuffer[sample] = inputBuffer[sample] * 0.5;
+            
         }
 
         
